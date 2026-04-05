@@ -6,11 +6,17 @@ from telebot import types
 from flask import Flask, request
 import os
 
-# ===== КОНФІГУРАЦІЯ =====
-BOT_TOKEN = "8670900193:AAF3c82nGP-6b5F25NM_RHYekoVqMQ2un7c"
-CHAT_ID = "209403052"
-MAX_OPEN_TIME_SEC = 60
-TOTAL_GATES = 50
+# ===== КОНФІГУРАЦІЯ З ENVIRONMENT VARIABLES =====
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
+CHAT_ID = os.environ.get('CHAT_ID', '')
+MAX_OPEN_TIME_SEC = int(os.environ.get('MAX_OPEN_TIME', '60'))
+TOTAL_GATES = int(os.environ.get('TOTAL_GATES', '50'))
+
+# Перевірка наявності токена
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не знайдено! Додайте змінну оточення на Render.com")
+if not CHAT_ID:
+    raise ValueError("❌ CHAT_ID не знайдено! Додайте змінну оточення на Render.com")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
@@ -63,11 +69,11 @@ def start_menu(message):
     markup.add(btn_emu, btn_status)
     bot.send_message(
         message.chat.id, 
-        "🚀 Система моніторингу 50 воріт запущена.\n\n"
-        "📌 *Команди:*\n"
-        "🎲 Емулювати випадкові ворота - відкрити випадкові ворота\n"
-        "📊 Статус усіх воріт - перевірити які ворота відкриті\n\n"
-        "⚠️ Якщо ворота будуть відкриті більше 60 секунд - надійде сповіщення!",
+        f"🚀 Система моніторингу {TOTAL_GATES} воріт запущена.\n\n"
+        f"📌 *Команди:*\n"
+        f"🎲 Емулювати випадкові ворота - відкрити випадкові ворота\n"
+        f"📊 Статус усіх воріт - перевірити які ворота відкриті\n\n"
+        f"⚠️ Якщо ворота будуть відкриті більше {MAX_OPEN_TIME_SEC} секунд - надійде сповіщення!",
         parse_mode="Markdown",
         reply_markup=markup
     )
@@ -154,7 +160,7 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "🚀 Бот моніторингу воріт працює!", 200
+    return f"🚀 Бот моніторингу {TOTAL_GATES} воріт працює!", 200
 
 @app.route('/health')
 def health():
@@ -163,6 +169,7 @@ def health():
         "status": "ok",
         "total_gates": TOTAL_GATES,
         "open_gates": open_count,
+        "max_open_time": MAX_OPEN_TIME_SEC,
         "timestamp": time.time()
     }, 200
 
